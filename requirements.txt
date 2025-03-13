@@ -1,0 +1,12 @@
+fastapi>=0.68.0
+uvicorn>=0.15.0
+python-multipart
+opencv-python-headless
+pytesseract
+python-dotenv
+sqlalchemy
+psycopg2-binary
+pandas
+joblib
+scikit-learn
+thefuzz[speedup]
