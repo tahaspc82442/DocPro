@@ -38,6 +38,10 @@ Make sure you have the following installed on your system:
 - PostgreSQL database
 - Virtual environment (optional but recommended)
 
+
+## It is hosted on AWS and running and can be accessed thru:
+- Open [http://13.234.31.18/docs](http://13.234.31.18/docs) in your browser.
+
 ## Setup and Installation
 ### 1. Clone the Repository
 ```sh
