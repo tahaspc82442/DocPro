@@ -1,213 +1,131 @@
-# DocPro - Invoice Processing & Fraud Detection API
+# DocPro
 
-## Overview
-
-DocPro is a FastAPI-based application designed for processing medical invoices, extracting relevant information using OCR, and predicting potential fraudulent claims using a trained RandomForest classifier.
+DocPro is an API-based invoice processing and fraud detection system. It extracts information from medical invoices using OCR, processes the data, and applies a machine learning model to classify invoices as legitimate or fraudulent.
 
 ## Features
-
-- **OCR-Based Invoice Processing**: Extracts text from invoice images.
-- **Automated Fraud Detection**: Uses a machine learning model to detect fraudulent claims.
-- **REST API Endpoints**: Provides an API for uploading invoices and querying predictions.
-- **Database Integration**: Stores extracted invoice details in a PostgreSQL database.
-- **Dockerized Deployment**: Fully containerized for easy deployment.
-
----
+- Upload medical invoices (JPG, PNG) and extract relevant details using OCR
+- Store extracted invoice details in a PostgreSQL database
+- Predict fraudulent invoices using a trained RandomForestClassifier model
+- FastAPI-based API for easy interaction
 
 ## Project Structure
-
 ```
 DocPro
-├── temp
-├── app
-│   ├── models.py               # Database models
-│   ├── database.py             # Database connection setup
-│   ├── schemas.py              # Pydantic schemas for API requests and responses
-│   ├── main.py                 # FastAPI application entry point
-│   ├── routes                  # API routes
-│   │   ├── invoices.py         # Invoice-related API endpoints
-│   │   ├── ml.py               # Fraud detection API endpoints
-│   ├── services                # Business logic services
-│   │   ├── ocr.py              # OCR text extraction
-│   │   ├── map.py              # ICD-10 diagnosis mapping
-│   ├── ml                      # Machine learning model
-│   │   ├── model.py            # RandomForest model training
-│   │   ├── generate_data.py    # Data generation script
-│   │   ├── loader.py           # OCR and feature extraction utilities
-├── invoice_labels.csv          # Sample dataset
-├── requirements.txt            # Python dependencies
-└── docker-compose.yml           # Docker setup for deployment
+├── temp                    # Temporary storage for uploaded invoices
+├── app                     # Main application folder
+│   ├── models.py           # SQLAlchemy models for database
+│   ├── database.py         # Database connection setup
+│   ├── schemas.py          # Pydantic models for request validation
+│   ├── routes/             # API route handlers
+│   │   ├── ml.py           # Fraud detection endpoints
+│   │   ├── invoices.py     # Invoice processing endpoints
+│   ├── services/           # Supporting services
+│   │   ├── ocr.py          # OCR processing logic
+│   │   ├── map.py          # Diagnosis code mapping logic
+│   ├── ml/                 # Machine learning related files
+│   │   ├── model.py        # Training script for fraud detection
+│   │   ├── generate_data.py # Data generation script
+│   │   ├── loader.py       # Feature extraction from images
+│   ├── main.py             # FastAPI main entry point
+├── invoice_labels.csv      # Sample dataset with labeled invoices
+├── requirements.txt        # Required Python dependencies
+├── README.md               # Documentation
 ```
 
----
+## Prerequisites
+Make sure you have the following installed on your system:
+- Python 3.10+
+- PostgreSQL database
+- Virtual environment (optional but recommended)
 
-## Setup Instructions
+## Setup and Installation
+### 1. Clone the Repository
+```sh
+git clone https://github.com/your-repo/docpro.git
+cd docpro
+```
 
-### 1️⃣ Prerequisites
+### 2. Create and Activate a Virtual Environment (Optional but Recommended)
+```sh
+python -m venv venv
+source venv/bin/activate  # On macOS/Linux
+venv\Scripts\activate     # On Windows
+```
 
-Ensure you have the following installed:
-
-- **Python 3.10+**
-- **Docker & Docker Compose**
-- **PostgreSQL (if running locally)**
-
-### 2️⃣ Install Dependencies
-
-```bash
+### 3. Install Dependencies
+```sh
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Set Up Environment Variables
-
-Create a `.env` file with the following:
-
-```env
-DATABASE_URL=postgresql://docuser:password@localhost/invoices
+### 4. Configure the Database
+Update the `DATABASE_URL` in `.env` or set it as an environment variable:
+```sh
+export DATABASE_URL="postgresql://docuser:password@localhost/invoices"
+```
+Make sure PostgreSQL is running and create the `invoices` database:
+```sh
+psql -U docuser -d postgres -c "CREATE DATABASE invoices;"
 ```
 
-### 4️⃣ Run the Application
+### 5. Initialize the Database
+```sh
+python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine)"
+```
 
-#### Without Docker
-
-```bash
+### 6. Run the FastAPI Server
+```sh
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-#### With Docker
-
-```bash
-docker-compose up -d
-```
-
-### 5️⃣ Access the API
-
-- API Root: [http://localhost:8000/](http://localhost:8000/)
-- Swagger Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-- Redoc UI: [http://localhost:8000/redoc](http://localhost:8000/redoc)
-
----
+### 7. Access the API
+Once the server is running, open the interactive API documentation:
+- Open [http://localhost:8000/docs](http://localhost:8000/docs) in your browser.
 
 ## API Endpoints
+### Upload an Invoice
+```http
+POST /invoices/upload
+```
+**Request:** Multipart form-data with an image file.
 
-### **Invoice Processing**
+**Response:** Extracted invoice details stored in the database.
 
-#### Upload an Invoice (Image File)
-
-**POST** `/invoices/upload`
-
-```json
-Response:
-{
-  "id": 1,
-  "patient_name": "John Doe",
-  "claim_amount": 12000.5,
-  "diagnosis": "Hypertension",
-  "date_of_service": "2023-06-15",
-  "predicted_label": "fraudulent",
-  "predicted_fraud_probability": 0.85
-}
+### List All Invoices
+```http
+GET /invoices/
 ```
 
-#### List Invoices
-
-**GET** `/invoices/`
-
-#### Predict Fraud on an Invoice
-
-**POST** `/invoices/{invoice_id}/predict_fraud`
-
-### **Fraud Detection**
-
-#### Predict Fraud Manually
-
-**POST** `/fraud/predict`
-
+### Predict Fraud for an Invoice
+```http
+POST /fraud/predict
+```
+**Request Body:**
 ```json
-Request:
 {
   "patient_name": "John Doe",
-  "date_service": "2023-06-15",
-  "claim_amount": 12000.5,
-  "diagnosis": "Hypertension"
+  "date_service": "2024-03-13",
+  "claim_amount": 15000,
+  "diagnosis": "M54.5"
 }
-Response:
+```
+**Response:**
+```json
 {
   "prediction_label": "fraudulent",
-  "prediction_prob_fraud": 0.85
+  "prediction_prob_fraud": 0.87
 }
 ```
 
----
-
-## Deployment on AWS EC2
-
-### 1️⃣ Build and Push AMD64 Docker Image (Locally)
-
-```bash
-docker buildx build --platform linux/amd64 -t tahaspc/docpro:latest .
-docker push tahaspc/docpro:latest
+## Training a New Model
+To train a new fraud detection model, run:
+```sh
+python app/ml/model.py
 ```
-
-### 2️⃣ Pull and Run on EC2
-
-```bash
-ssh ec2-user@<EC2_PUBLIC_IP>
-docker pull tahaspc/docpro:latest
-docker-compose up -d
-```
-
-### 3️⃣ Access the App
-
-Visit:
-
-```
-http://<EC2_PUBLIC_IP>/docs
-```
-
----
-
-## Troubleshooting
-
-### Check Running Containers
-
-```bash
-docker ps
-```
-
-### Check Logs
-
-```bash
-docker-compose logs -f
-```
-
-### Restart Application
-
-```bash
-docker-compose restart
-```
-
-### Remove Existing Container (if needed)
-
-```bash
-docker rm -f docpro_app
-```
-
----
-
-## 📌 Submission Guidelines
-
-- **GitHub Repo:** Upload all code and docs to a public GitHub repository.
-- **Documentation:** Include this README.
-- **Loom Video (Optional):** Record a walkthrough explaining your solution.
-- **Deployment Links:** Share AWS EC2 instance URL if hosted.
-
----
+The trained model will be saved as `app/medical_fraud_rf_model.joblib`.
 
 ## License
+This project is licensed under the MIT License.
 
-MIT License. Feel free to use and improve this project!
-
----
-
-## 🚀 Happy Coding! 🚀
+## Contributors
+- **Mohd Taha Abbas** - [LinkedIn](www.linkedin.com/in/mohd-taha-abbas-19458212b)
 
